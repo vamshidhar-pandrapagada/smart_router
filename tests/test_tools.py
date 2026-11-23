@@ -341,3 +341,79 @@ def test_constrained_decoding_schema_matches_the_validated_schema():
     reg = ToolRegistry({SHAREPOINT.name: SHAREPOINT})
     branch = reg.envelope_schema()["oneOf"][0]
     assert branch["properties"]["arguments"] == SP_SCHEMA
+
+
+# -- MCP tool annotations (the server's own side-effect hints) --------------
+
+class _Ann:
+    def __init__(self, read_only=None, destructive=None, idempotent=None):
+        self.read_only_hint = read_only
+        self.destructive_hint = destructive
+        self.idempotent_hint = idempotent
+
+
+class _Tool:
+    def __init__(self, name, annotations=None):
+        self.name = name
+        self.description = ""
+        self.input_schema = {"type": "object", "properties": {}, "required": []}
+        self.annotations = annotations
+
+
+@pytest.mark.parametrize("ann,irreversible,source", [
+    (_Ann(read_only=True), False, "declared: read_only_hint"),
+    (_Ann(read_only=False), True, "declared: read_only_hint=False"),
+    (_Ann(destructive=True), True, "declared: destructive_hint"),
+    # destructive wins over a contradictory read_only
+    (_Ann(read_only=True, destructive=True), True, "declared: destructive_hint"),
+    (None, None, "undeclared"),
+    (_Ann(), None, "undeclared"),
+])
+def test_server_annotations_decide_reversibility(ann, irreversible, source):
+    from smart_router.tools.stdio_gateway import _to_spec
+
+    spec = _to_spec(_Tool("some_tool", ann))
+    assert spec.irreversible is irreversible
+    assert spec.reversibility_source == source
+
+
+def test_a_declared_read_only_tool_beats_a_mutating_sounding_name():
+    """The server's word wins over our name guess. `create_report` only reads."""
+    from smart_router.tools.stdio_gateway import _to_spec
+
+    spec = _to_spec(_Tool("create_report", _Ann(read_only=True)))
+    assert spec.is_irreversible() is False          # inference alone would say True
+
+
+def test_an_unannotated_tool_still_falls_back_to_conservative_inference():
+    from smart_router.tools.stdio_gateway import _to_spec
+
+    assert _to_spec(_Tool("git_push")).is_irreversible() is True
+    assert _to_spec(_Tool("git_log")).is_irreversible() is False
+
+
+def test_a_non_idempotent_tool_is_not_retried_after_a_transient_fault():
+    """Retrying a write that may have partially landed turns one fault into two commits."""
+    spec = ToolSpec("ledger_append", {"entry": "string"}, required=("entry",),
+                    irreversible=True, idempotent=False)
+    g = MockMCPGateway(specs=[spec], handlers={"ledger_append": http_status_handler(503)})
+    gate = CommitGate(g, ToolRegistry.from_gateway(g), dry_run_irreversible=False)
+    out = gate.commit(propose(call("ledger_append", entry="x"), gate.registry, uuid4()))
+    assert out.attempts == 1
+    assert "non-idempotent" in out.detail
+
+
+def test_an_idempotent_tool_is_still_retried():
+    spec = ToolSpec("cache_warm", {"key": "string"}, required=("key",), idempotent=True)
+    state = {"n": 0}
+
+    def flaky(args, dry):
+        state["n"] += 1
+        if state["n"] == 1:
+            raise ToolTransientError("503", status=503)
+        return {"ok": True}
+
+    g = MockMCPGateway(specs=[spec], handlers={"cache_warm": flaky})
+    gate = CommitGate(g, ToolRegistry.from_gateway(g))
+    out = gate.commit(propose(call("cache_warm", key="k"), gate.registry, uuid4()))
+    assert out.committed and out.attempts == 2

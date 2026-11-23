@@ -76,6 +76,7 @@ class CommitOutcome:
     detail: str = ""
     dry_run_result: ToolResult | None = None
     attempts: int = 0
+    detail_suffix: str = ""
 
     @property
     def should_escalate(self) -> bool:
@@ -182,8 +183,17 @@ class CommitGate:
                     idempotency_key=key, dry_run=False, timeout=timeout,
                 )
             except ToolTransientError as exc:
-                if attempt < self.max_tool_retries:
+                # A retry is only safe when repeating the call cannot duplicate the side
+                # effect. The server's idempotent_hint settles that where it provides
+                # one: retrying a non-idempotent write that may have partially landed
+                # turns one transient fault into two commits.
+                safe_to_retry = spec.idempotent is not False
+                if attempt < self.max_tool_retries and safe_to_retry:
                     continue
+                if not safe_to_retry:
+                    outcome.detail_suffix = (
+                        " (not retried: server declares this tool non-idempotent)"
+                    )
                 return self._from_exception(exc, outcome)
             except ToolError as exc:
                 return self._from_exception(exc, outcome)
@@ -218,6 +228,6 @@ class CommitGate:
             outcome.category = FailureCategory.TOOL_SEMANTIC
         else:
             outcome.category = FailureCategory.TOOL_SEMANTIC
-        outcome.detail = str(exc)
+        outcome.detail = str(exc) + outcome.detail_suffix
         outcome.committed = False
         return outcome

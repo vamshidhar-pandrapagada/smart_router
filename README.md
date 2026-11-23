@@ -119,9 +119,13 @@ flowchart TD
   requests go through the same gate.
 - **Validation is recursive**, so a wrong field three levels inside a nested filter is
   caught before the connector sees it.
-- **Tools that don't declare whether they're reversible are treated as irreversible.**
-  Inference from the tool name (`git_push`, `send_mail`) is a safety net, and
-  `ToolRegistry.audit()` lists every guess for someone to confirm.
+- **The server's own side-effect hints decide reversibility.** MCP tool annotations carry
+  `read_only_hint`, `destructive_hint` and `idempotent_hint`; `destructive_hint` wins
+  outright, then `read_only_hint`. `ToolRegistry.declared()` shows what the server stated.
+  Only when a server says nothing does name-based inference apply, defaulting to
+  irreversible, with `ToolRegistry.audit()` listing every guess for someone to confirm.
+- **A tool the server declares non-idempotent is not retried** after a transient fault.
+  Retrying a write that may have partially landed turns one fault into two side effects.
 - **Irreversible calls get a dry run first** where the gateway supports one. MCP has no
   dry-run, so for live MCP servers use `require_approval_for_irreversible` instead.
 - **Non-HTTP servers are classified from their error text.** git reports exit codes and

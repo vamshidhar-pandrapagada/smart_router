@@ -209,6 +209,7 @@ def _to_spec(tool: Any, hidden: set[str] | None = None) -> ToolSpec:
     validator alike.
     """
     hidden = hidden or set()
+    irreversible, idempotent, source = _reversibility(getattr(tool, "annotations", None))
     schema = dict(getattr(tool, "input_schema", None) or getattr(tool, "inputSchema", None) or {})
     properties = {k: v for k, v in (schema.get("properties") or {}).items() if k not in hidden}
     if schema:
@@ -227,7 +228,33 @@ def _to_spec(tool: Any, hidden: set[str] | None = None) -> ToolSpec:
         required=tuple(schema.get("required") or ()),
         description=(getattr(tool, "description", "") or "").strip()[:200],
         argument_schema=schema or None,
-        # Reversibility is left undeclared: MCP has no field for it, so the registry's
-        # conservative inference decides and `audit()` surfaces every guess.
-        irreversible=None,
+        # MCP tool annotations carry read_only_hint / destructive_hint / idempotent_hint.
+        # They are optional, so a server may say nothing -- but when it does speak, its
+        # word beats our name-based guess. This used to be hardcoded to None, which threw
+        # away what every mcp-server-git tool states explicitly.
+        irreversible=irreversible,
+        idempotent=idempotent,
+        reversibility_source=source,
     )
+
+
+def _reversibility(annotations: Any) -> tuple[bool | None, bool | None, str]:
+    """Read the server's own side-effect hints.
+
+    They are hints, not guarantees, and each is optional. Precedence:
+    destructive_hint wins outright; otherwise read_only_hint decides; silence falls
+    through to name inference in `ToolSpec.is_irreversible`.
+    """
+    if annotations is None:
+        return None, None, "undeclared"
+    read_only = getattr(annotations, "read_only_hint", None)
+    destructive = getattr(annotations, "destructive_hint", None)
+    idempotent = getattr(annotations, "idempotent_hint", None)
+
+    if destructive is True:
+        return True, idempotent, "declared: destructive_hint"
+    if read_only is True:
+        return False, idempotent, "declared: read_only_hint"
+    if read_only is False:
+        return True, idempotent, "declared: read_only_hint=False"
+    return None, idempotent, "undeclared"

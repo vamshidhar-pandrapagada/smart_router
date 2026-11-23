@@ -35,6 +35,12 @@ class ToolSpec:
     irreversible: bool | None = None
     #: The gateway executes this without side effects when asked.
     supports_dry_run: bool = False
+    #: Is a repeat call safe? From the server's idempotent_hint where it provides one.
+    #: False means a retry after a transient fault may duplicate the side effect, so the
+    #: commit gate must not retry it blind.
+    idempotent: bool | None = None
+    #: How reversibility was determined, for `audit()`. "declared" when the server said so.
+    reversibility_source: str = "undeclared"
     #: MCP server behind the gateway. Informational; the gateway does the routing.
     server: str = ""
     #: Full JSON Schema for `arguments`, when the connector declares one. Required for
@@ -133,6 +139,15 @@ class ToolRegistry:
                 inferred, why = pol.infer(spec.name)
                 out.append({"tool": spec.name, "inferred_irreversible": inferred, "why": why})
         return out
+
+    def declared(self) -> list[dict[str, Any]]:
+        """Tools whose reversibility the server stated, rather than us guessing."""
+        return [
+            {"tool": s.name, "irreversible": s.irreversible,
+             "idempotent": s.idempotent, "source": s.reversibility_source}
+            for s in sorted(self.tools.values(), key=lambda t: t.name)
+            if s.irreversible is not None
+        ]
 
     @classmethod
     def from_gateway(cls, gateway) -> "ToolRegistry":
