@@ -1,0 +1,49 @@
+[build-system]
+# setuptools rather than hatchling: this repository's root *is* the package directory.
+# The package-dir mapping below builds a correctly nested wheel, and an editable install
+# that imports as `smart_router` whatever the checkout directory happens to be called.
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-router"
+version = "0.1.0"
+description = "Cascading inference router with verifier-gated escalation."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Pinned to match pramana-ai's stack; there is no vLLM dependency there to match.
+    "pydantic>=2.6.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+# Provider access. Isolated so the core runs (and tests) without any SDK or key.
+providers = ["litellm>=1.92.0"]
+# Local in-process embedding model (SS2.4). Heavy; the hashing embedder is the default.
+embed = ["sentence-transformers>=3.0.0"]
+# Live MCP servers over stdio (tools/stdio_gateway.py).
+mcp = ["mcp>=1.0"]
+dev = ["pytest>=8.0.0"]
+
+[tool.setuptools]
+package-dir = {"smart_router" = "."}
+# Explicit, because package discovery cannot see a package whose directory is the
+# project root. tests/test_packaging.py fails if a subpackage is added but not listed.
+packages = [
+    "smart_router",
+    "smart_router.cache",
+    "smart_router.gateway",
+    "smart_router.memory",
+    "smart_router.routing",
+    "smart_router.schemas",
+    "smart_router.tools",
+    "smart_router.verify",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live_mcp: spawns a real MCP server via uvx (slow, needs network on first run)",
+]

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+# The README has a fresh clone create its venv here.
+.venv/
+.DS_Store
+
+# Reflexion state. Persisted failures, exemplars and golden cases contain real user
+# queries and model outputs -- never commit them.
+.smart_router/
