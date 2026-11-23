@@ -40,6 +40,10 @@ class FailureCategory(str, Enum):
     # Semantic. The residue (R) plus what no verifier sees (U).
     WRONG_TOOL_SELECTED = "WRONG_TOOL_SELECTED"
     UNGROUNDED_CLAIM = "UNGROUNDED_CLAIM"
+    #: A well-formed call naming an entity that appears nowhere in the conversation --
+    #: the right shape pointed at the wrong account, order or ticket. Schema validation
+    #: cannot see this: the types and required fields are all correct.
+    UNGROUNDED_ENTITY = "UNGROUNDED_ENTITY"
     REFUSAL = "REFUSAL"
     SILENT_SEMANTIC = "SILENT_SEMANTIC"
 

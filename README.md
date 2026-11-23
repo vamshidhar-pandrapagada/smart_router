@@ -73,7 +73,7 @@ flowchart TD
 
 | Tier | Checks | Catches | Misses |
 | :-- | :-- | :-- | :-- |
-| **Free** | truncation, refusal, JSON, tool call against the connector's schema | structural errors — most of which constrained decoding would prevent outright | anything well-formed but wrong |
+| **Free** | truncation, refusal, JSON, tool call against the connector's schema, entity grounding | structural errors, plus invented or transposed identifiers | the wrong one of two identifiers the conversation did mention |
 | **Cheap** | token logprobs (when the endpoint exposes them), self-consistency | an uncertain model | a confidently wrong one: 3/3 agreement on a wrong answer passes |
 | **Judge** | an LLM compares the request with the proposed action | semantic mismatches, e.g. cron `0 8 * * *` for "weekday mornings" | — (the expensive tier) |
 
@@ -303,6 +303,7 @@ verify/
   free.py, cheap.py      structural and probabilistic verifiers
   expensive.py           LLM judge and its sampling policy
   ladder.py              ordering, short-circuiting, failure decomposition
+  entities.py            identifiers in a call must appear in the conversation
   result.py              checks on what a tool returned
 
 tools/

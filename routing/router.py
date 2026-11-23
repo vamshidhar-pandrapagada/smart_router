@@ -252,6 +252,7 @@ class SmartRouter:
             trace.calls.append(call)
             break
 
+        grounding = grounding or self._conversation_grounding(history)
         ctx = VerificationContext(
             query=query, response=resp, risk_class=policy.risk_class, grounding=grounding
         )
@@ -316,6 +317,19 @@ class SmartRouter:
         if not trace.tool_committed or not self._is_irreversible(text):
             self.cache.put(query, text, tenant_id=tenant_id, model=self.small.model_name)
         return trace
+
+    @staticmethod
+    def _conversation_grounding(history) -> tuple[str, ...]:
+        """What the conversation has actually mentioned.
+
+        Entity checks compare a proposed call's identifiers against this. Earlier tool
+        results matter as much as the user's own words: an id the user never typed but a
+        previous lookup returned is legitimately grounded.
+        """
+        if history is None:
+            return ()
+        messages = getattr(history, "messages", history)
+        return tuple(m["content"] for m in messages)
 
     def _is_irreversible(self, text: str) -> bool:
         if self.commit_gate is None:
