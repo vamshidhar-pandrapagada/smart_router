@@ -186,9 +186,9 @@ Optional extras: `providers` (LiteLLM), `mcp` (live MCP servers), `embed` (local
 sentence-transformers). The core runs and tests with none of them; `MockClient` and
 `HashingEmbedder` are the defaults.
 
-**On versions.** `pyproject.toml` declares what is *compatible* (`litellm>=1.92.0`);
-`uv.lock` records what has actually been *resolved and checked*. The two answer different
-questions, and only the lock gives you the same versions twice.
+**On versions.** litellm is pinned exactly (`litellm==1.100.1`), not given a range.
+Provider SDKs move fast, and 1.100.1 is the version every test and live probe here has
+actually run against. `uv.lock` pins the other 122 packages alongside it.
 
 A lock binds `uv sync` and `uv pip sync`. It does **not** bind `pip install smart-router`,
 which resolves fresh from the ranges — so a consumer installing later still gets whatever

@@ -20,7 +20,12 @@ dependencies = [
 
 [project.optional-dependencies]
 # Provider access. Isolated so the core runs (and tests) without any SDK or key.
-providers = ["litellm>=1.92.0"]
+# Pinned exactly, not a range: 1.100.1 is the version every test and live probe in this
+# repo has actually run against. The previous floor of 1.92.0 was unreachable anyway --
+# it predates litellm's Python 3.14 wheels, so uv falls back to compiling its Rust
+# extension from source and the build fails. Raise this deliberately, after checking that
+# litellm.completion, .suppress_debug_info and .model_list still behave.
+providers = ["litellm==1.100.1"]
 # Local in-process embedding model (SS2.4). Heavy; the hashing embedder is the default.
 embed = ["sentence-transformers>=3.0.0"]
 # Live MCP servers over stdio (tools/stdio_gateway.py).
