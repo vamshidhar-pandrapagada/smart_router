@@ -136,4 +136,4 @@ seamspec = "0.1.2"
 
 [github]
 copilot_review = true
-applied = false
+applied = true
