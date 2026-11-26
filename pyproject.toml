@@ -26,7 +26,7 @@ dependencies = [
 # wheels, so uv falls back to compiling its Rust extension from source and the build fails.
 # Raise this deliberately, after checking that litellm.completion, .suppress_debug_info and
 # .model_list still behave.
-providers = ["litellm==1.100.4"]
+providers = ["litellm==1.110.1"]
 # Local in-process embedding model (SS2.4). Heavy; the hashing embedder is the default.
 embed = ["sentence-transformers>=3.0.0"]
 # Live MCP servers over stdio (tools/stdio_gateway.py).
