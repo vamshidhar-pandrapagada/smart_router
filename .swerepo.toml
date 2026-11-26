@@ -11,7 +11,7 @@ progress_dir = "docs/progress"
 commands = "- Install: `uv sync`\n- Test: `uv run pytest`\n- Lint: `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`\n- Check the standard: `swerepo check`"
 test_inline = "`uv run pytest`, `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`"
 default_branch = "main"
-python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.11", "3.12", "3.13", "3.14"]
 ci_install = "uv sync"
 lint = "gradual"
 governance_command = ""
@@ -63,9 +63,9 @@ inputs = {adr_dir = "docs/adr", progress_dir = "docs/progress", project = "smart
 
 [files.".github/workflows/swerepo-ci.yml"]
 template = "ci/workflow@2"
-rendered = "e94f044a0fa807f60239fe9ff42789a7a0742ee8aaf9f080cd0987cb1946d0d0"
-written = "e94f044a0fa807f60239fe9ff42789a7a0742ee8aaf9f080cd0987cb1946d0d0"
-inputs = {copilot_review = "true", default_branch = "main", install = "uv sync", lint = "gradual", linters = "", projects = "[]", python = "3.10,3.11,3.12,3.13,3.14", seamspec = "0.1.2", swerepo = ""}
+rendered = "06938b17cef8345998b1b4b97b17dd4b8517fb2f27eaa09b0790ee3aaa9baa8c"
+written = "06938b17cef8345998b1b4b97b17dd4b8517fb2f27eaa09b0790ee3aaa9baa8c"
+inputs = {copilot_review = "true", default_branch = "main", install = "uv sync", lint = "gradual", linters = "", projects = "[]", python = "3.11,3.12,3.13,3.14", seamspec = "0.1.2", swerepo = ""}
 
 [files.".github/swerepo/ruleset.json"]
 template = "github/ruleset@1"

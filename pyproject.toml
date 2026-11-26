@@ -10,7 +10,7 @@ name = "smart-router"
 version = "0.1.0"
 description = "Cascading inference router with verifier-gated escalation."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     # Pinned to match pramana-ai's stack; there is no vLLM dependency there to match.
     "pydantic>=2.6.0",
