@@ -10,7 +10,7 @@ name = "smart-router"
 version = "0.1.0"
 description = "Cascading inference router with verifier-gated escalation."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     # Pinned to match pramana-ai's stack; there is no vLLM dependency there to match.
     "pydantic>=2.6.0",
@@ -20,7 +20,13 @@ dependencies = [
 
 [project.optional-dependencies]
 # Provider access. Isolated so the core runs (and tests) without any SDK or key.
-providers = ["litellm>=1.92.0"]
+# Pinned exactly, not a range: 1.100.4 is 1.100.1, the version every test and live probe in
+# this repo has run against, plus the fix for GHSA-7hp6-4w63-5g45 (high severity). The
+# previous floor of 1.92.0 was unreachable anyway -- it predates litellm's Python 3.14
+# wheels, so uv falls back to compiling its Rust extension from source and the build fails.
+# Raise this deliberately, after checking that litellm.completion, .suppress_debug_info and
+# .model_list still behave.
+providers = ["litellm==1.100.4"]
 # Local in-process embedding model (SS2.4). Heavy; the hashing embedder is the default.
 embed = ["sentence-transformers>=3.0.0"]
 # Live MCP servers over stdio (tools/stdio_gateway.py).
@@ -47,3 +53,16 @@ testpaths = ["tests"]
 markers = [
     "live_mcp: spawns a real MCP server via uvx (slow, needs network on first run)",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+# swerepo:begin
+[tool.ruff]
+# Locked SeamSpec tests are never linted or reformatted: any edit counts as tampering (SWEREPO-SPEC §6.3).
+extend-exclude = [".seamspec"]
+# line-length: ruff's default
+# swerepo:end

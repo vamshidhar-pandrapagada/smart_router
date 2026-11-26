@@ -1,0 +1,139 @@
+# Written by SWERepo (SWEREPO-SPEC §9). Commit this file. Settings may be edited; fingerprints may not.
+standard = 1
+swerepo = "0.1.0.dev0"
+components = ["docs", "agents", "ci", "security", "github"]
+mode = "solo"
+
+[values]
+project = "smart-router"
+adr_dir = "docs/adr"
+progress_dir = "docs/progress"
+commands = "- Install: `uv sync`\n- Test: `uv run pytest`\n- Lint: `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`\n- Check the standard: `swerepo check`"
+test_inline = "`uv run pytest`, `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`"
+default_branch = "main"
+python = ["3.11", "3.12", "3.13", "3.14"]
+ci_install = "uv sync"
+lint = "gradual"
+governance_command = ""
+ci_copilot_review = "true"
+code_owner = "@vamshidhar-pandrapagada"
+
+[agents]
+hosts = ["antigravity", "claude"]
+
+[pr]
+enforce = false
+warn_since = 2026-11-25
+
+[files."docs/adr/README.md"]
+template = "docs/adr-readme@1"
+rendered = "412b22fb2be78e77da426885d185660cdc75534281b4cfb7dd15d7f92c8945e3"
+written = "412b22fb2be78e77da426885d185660cdc75534281b4cfb7dd15d7f92c8945e3"
+inputs = {project = "smart-router"}
+
+[files."docs/adr/TEMPLATE.md"]
+template = "docs/adr-template@1"
+rendered = "66ad9d0712fb8ddac03d84adeec60b5ff77427c0e35fd3621beca8f9573730be"
+written = "66ad9d0712fb8ddac03d84adeec60b5ff77427c0e35fd3621beca8f9573730be"
+inputs = {}
+
+[files."docs/agents/prepare-pr.md"]
+template = "agents/prepare-pr@3"
+rendered = "442b62003a03a3125b0eab573002af18fab7a434cd480781276e1f485451bf4d"
+written = "442b62003a03a3125b0eab573002af18fab7a434cd480781276e1f485451bf4d"
+inputs = {progress_dir = "docs/progress", spec = "SPEC.md", test_inline = "`uv run pytest`, `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`"}
+
+[files."docs/agents/address-review.md"]
+template = "agents/address-review@3"
+rendered = "07402575a2743ac8d57f532803d38c1e601143c5bf56c7c093bd76bccac9dbf3"
+written = "07402575a2743ac8d57f532803d38c1e601143c5bf56c7c093bd76bccac9dbf3"
+inputs = {}
+
+[files."docs/agents/record-adr.md"]
+template = "agents/record-adr@1"
+rendered = "ad040e9fa0090b65580cb4ef8eb115bc0b4ccd1b6e340bb5b319c5ab5ec537ed"
+written = "ad040e9fa0090b65580cb4ef8eb115bc0b4ccd1b6e340bb5b319c5ab5ec537ed"
+inputs = {adr_dir = "docs/adr"}
+
+[files."docs/agents/update-spec.md"]
+template = "agents/update-spec@1"
+rendered = "c4e3d1314cdc092febd3bce3efd3ec32332a9a0890bb306edf66446c01fdb7e0"
+written = "c4e3d1314cdc092febd3bce3efd3ec32332a9a0890bb306edf66446c01fdb7e0"
+inputs = {adr_dir = "docs/adr", progress_dir = "docs/progress", project = "smart-router", spec = "SPEC.md"}
+
+[files.".github/workflows/swerepo-ci.yml"]
+template = "ci/workflow@2"
+rendered = "06938b17cef8345998b1b4b97b17dd4b8517fb2f27eaa09b0790ee3aaa9baa8c"
+written = "06938b17cef8345998b1b4b97b17dd4b8517fb2f27eaa09b0790ee3aaa9baa8c"
+inputs = {copilot_review = "true", default_branch = "main", install = "uv sync", lint = "gradual", linters = "", projects = "[]", python = "3.11,3.12,3.13,3.14", seamspec = "0.1.2", swerepo = ""}
+
+[files.".github/swerepo/ruleset.json"]
+template = "github/ruleset@1"
+rendered = "8fc336a9bf569e6ed67a601b675cfac74d3fedd7d7b38fe9d06e3252b289c0a1"
+written = "8fc336a9bf569e6ed67a601b675cfac74d3fedd7d7b38fe9d06e3252b289c0a1"
+inputs = {code_owner = "@login", copilot_review = "true", extra_checks = "[]", merge_methods = "squash", mode = "solo"}
+
+[files.".github/swerepo/repo-settings.json"]
+template = "github/repo-settings@1"
+rendered = "fa29587e8e320051443c3e58d94ea843cf8dace25857fc772ff53262af16a134"
+written = "fa29587e8e320051443c3e58d94ea843cf8dace25857fc772ff53262af16a134"
+inputs = {code_owner = "@login", copilot_review = "true", extra_checks = "[]", merge_methods = "squash", mode = "solo"}
+
+[files.".github/copilot-instructions.md"]
+template = "github/copilot-instructions@2"
+rendered = "1ff3a3d3195969d5e4cc007f1a7999c99e75b5324dfb8c39b8bc25f0ce5bf809"
+written = "1ff3a3d3195969d5e4cc007f1a7999c99e75b5324dfb8c39b8bc25f0ce5bf809"
+inputs = {adr_dir = "docs/adr", progress_dir = "docs/progress", spec = "SPEC.md"}
+
+[files.".github/dependabot.yml"]
+template = "github/dependabot@1"
+rendered = "914685618795734c10bcb54b0b9be984c69635b1f79848a4c0e33ace6c165ca7"
+written = "914685618795734c10bcb54b0b9be984c69635b1f79848a4c0e33ace6c165ca7"
+inputs = {python_ecosystem = "uv"}
+
+[files.".github/pull_request_template.md"]
+template = "github/pr-template@2"
+rendered = "f76831a9c98e3b905fc48e775d0bcbb082cbc5b2f978f7afd25bebbf240efc01"
+written = "f76831a9c98e3b905fc48e775d0bcbb082cbc5b2f978f7afd25bebbf240efc01"
+inputs = {adr_dir = "docs/adr", progress_dir = "docs/progress", spec = "SPEC.md", test_command = "uv run pytest"}
+[blocks."AGENTS.md"]
+template = "agents/block@3"
+rendered = "c2376b14c476a81bb0a5fe06acb5c1b1680f19fb1e4eafa4bab35c9e01815aa0"
+written = "c2376b14c476a81bb0a5fe06acb5c1b1680f19fb1e4eafa4bab35c9e01815aa0"
+inputs = {adr_dir = "docs/adr", commands = "- Install: `uv sync`\n- Test: `uv run pytest`\n- Lint: `uv run ruff check --force-exclude <changed .py files>` and `uv run ruff format --check --force-exclude <changed .py files>`\n- Check the standard: `swerepo check`", progress_dir = "docs/progress", project = "smart-router", spec = "SPEC.md"}
+
+[blocks."GEMINI.md"]
+template = "agents/gemini@1"
+rendered = "43dca72e73e2b799d5a93075eef031b4279518e5d6336627e6d3fd95d35eabf1"
+written = "43dca72e73e2b799d5a93075eef031b4279518e5d6336627e6d3fd95d35eabf1"
+inputs = {}
+
+[blocks."CLAUDE.md"]
+template = "agents/claude@1"
+rendered = "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+written = "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+inputs = {}
+
+[blocks."pyproject.toml"]
+template = "ci/pyproject@1"
+rendered = "35314cdcc5311a75a083829864451b794d891b9a1d2b504a132aee2502f9bf01"
+written = "35314cdcc5311a75a083829864451b794d891b9a1d2b504a132aee2502f9bf01"
+inputs = {pytest = "false", ruff = "true", ruff_line_length = ""}
+
+[blocks.".gitignore"]
+template = "security/gitignore@1"
+rendered = "ab6e322c5609af224e19b118e3c953fd1ece1b4152c3d61ce7dc095795fa19cd"
+written = "ab6e322c5609af224e19b118e3c953fd1ece1b4152c3d61ce7dc095795fa19cd"
+inputs = {}
+
+[blocks.".github/CODEOWNERS"]
+template = "github/codeowners@1"
+rendered = "3dce1f6dc1fabec326a86142940e7ce121bb5289403de5126ae7b271eec9d457"
+written = "3dce1f6dc1fabec326a86142940e7ce121bb5289403de5126ae7b271eec9d457"
+inputs = {lines = "/.github/            @vamshidhar-pandrapagada\n/.swerepo.toml       @vamshidhar-pandrapagada\n/AGENTS.md           @vamshidhar-pandrapagada\n/CLAUDE.md           @vamshidhar-pandrapagada\n/docs/adr/           @vamshidhar-pandrapagada\n/docs/agents/        @vamshidhar-pandrapagada\n/.seamspec/          @vamshidhar-pandrapagada\n/docs/EARNED_SPEC.md @vamshidhar-pandrapagada"}
+[tools]
+seamspec = "0.1.2"
+
+[github]
+copilot_review = true
+applied = false
