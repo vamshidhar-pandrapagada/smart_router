@@ -16,7 +16,7 @@ ci_install = "uv sync"
 lint = "gradual"
 governance_command = ""
 ci_copilot_review = "true"
-code_owner = "@login"
+code_owner = "@vamshidhar-pandrapagada"
 
 [agents]
 hosts = ["antigravity", "claude"]
@@ -128,9 +128,9 @@ inputs = {}
 
 [blocks.".github/CODEOWNERS"]
 template = "github/codeowners@1"
-rendered = "2a73776b478e65ddabf3bb2e8c44637522439609f76cb65017146d5208c88594"
-written = "2a73776b478e65ddabf3bb2e8c44637522439609f76cb65017146d5208c88594"
-inputs = {lines = "/.github/            @login\n/.swerepo.toml       @login\n/AGENTS.md           @login\n/CLAUDE.md           @login\n/docs/adr/           @login\n/docs/agents/        @login\n/.seamspec/          @login\n/docs/EARNED_SPEC.md @login"}
+rendered = "3dce1f6dc1fabec326a86142940e7ce121bb5289403de5126ae7b271eec9d457"
+written = "3dce1f6dc1fabec326a86142940e7ce121bb5289403de5126ae7b271eec9d457"
+inputs = {lines = "/.github/            @vamshidhar-pandrapagada\n/.swerepo.toml       @vamshidhar-pandrapagada\n/AGENTS.md           @vamshidhar-pandrapagada\n/CLAUDE.md           @vamshidhar-pandrapagada\n/docs/adr/           @vamshidhar-pandrapagada\n/docs/agents/        @vamshidhar-pandrapagada\n/.seamspec/          @vamshidhar-pandrapagada\n/docs/EARNED_SPEC.md @vamshidhar-pandrapagada"}
 [tools]
 seamspec = "0.1.2"
 
