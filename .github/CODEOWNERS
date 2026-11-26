@@ -1,0 +1,12 @@
+# swerepo:begin
+# Governance files: changes need the code owner's review in team mode (SWEREPO-SPEC §6.1).
+# Kept last in this file, since the last matching line wins.
+/.github/            @login
+/.swerepo.toml       @login
+/AGENTS.md           @login
+/CLAUDE.md           @login
+/docs/adr/           @login
+/docs/agents/        @login
+/.seamspec/          @login
+/docs/EARNED_SPEC.md @login
+# swerepo:end

@@ -1,0 +1,264 @@
+# Written by SWERepo (SWEREPO-SPEC §6.2, ADR-20261122-4a06). `swerepo update` keeps it current and merges
+# your edits. A ruleset requires only `ci-ok`, which passes when every other job passed or was skipped by design.
+name: swerepo-ci
+
+on:
+  pull_request:
+    # ready_for_review too: a draft marked ready runs again, now with Copilot's review to wait for (ADR-a359)
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the run still going for its previous commit; runs on pushes always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # to compare with the base branch or the commit before the push
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.28"
+          python-version: "3.14"
+      - run: uv sync
+      # Moving to ruff gradually (spec §6.3): only the Python files this change touched are checked, so existing
+      # code isn't flagged all at once. SWERepo never reformats code to make it pass.
+      - name: ruff on the changed files
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -eu
+          if [ "$EVENT" = "pull_request" ]; then
+            base=$(git merge-base "origin/$BASE_REF" HEAD)
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+              && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base=$BEFORE
+          elif git rev-parse -q --verify "HEAD~1^{commit}" >/dev/null; then
+            base=HEAD~1  # a new branch's first push
+          else
+            echo "No earlier commit to compare with: nothing to check."
+            exit 0
+          fi
+          git diff -z --name-only --diff-filter=ACMR "$base" HEAD -- '*.py' '*.pyi' > "$RUNNER_TEMP/changed"
+          if [ ! -s "$RUNNER_TEMP/changed" ]; then
+            echo "No Python files changed."
+            exit 0
+          fi
+          # `--` so a file whose name starts with "-" isn't read as an option (review P4-F09)
+          xargs -0 uv run ruff check --force-exclude -- < "$RUNNER_TEMP/changed"
+          xargs -0 uv run ruff format --check --force-exclude -- < "$RUNNER_TEMP/changed"
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.28"
+          python-version: ${{ matrix.python }}
+      - run: uv sync
+      - run: uv run pytest
+
+  # macOS minutes cost about ten times more on private repositories: pushes only (spec §6.2).
+  test-macos:
+    if: github.event_name == 'push'
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.28"
+          python-version: "3.14"
+      - run: uv sync
+      - run: uv run pytest
+
+  # A static security audit of every workflow in .github/workflows/.
+  workflow-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.28"
+      - run: uvx zizmor==1.32.0 --offline .github/workflows
+
+  # Locked SeamSpec rules, inside ci-ok so a failing rule blocks the merge (ADR-20261122-4a06). Without SeamSpec
+  # set up, the job says so and passes.
+  seamspec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # doctor --ci compares the ledger with the base branch
+          fetch-tags: true  # locked rules may read the release tags (ADR-20261124-41e9)
+          persist-credentials: false
+      - name: is SeamSpec set up?
+        id: setup
+        run: |
+          if [ -f .seamspec/config.toml ]; then
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SeamSpec isn't set up here: no locked rules to run."
+          fi
+      - if: steps.setup.outputs.on == 'true'
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          version: "0.9.28"
+          python-version: "3.14"
+      - if: steps.setup.outputs.on == 'true'
+        run: uv sync
+      # doctor --ci compares the ledger with a base: the pull request's base branch, or on a push every commit the
+      # push brought (its own default, HEAD~1, misses earlier commits of a multi-commit push).
+      - name: seamspec doctor
+        if: steps.setup.outputs.on == 'true'
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -eu
+          if [ "$EVENT" = "pull_request" ]; then
+            uvx seamspec==0.1.2 doctor --ci
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+              && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            uvx seamspec==0.1.2 doctor --ci --base "$BEFORE"
+          elif git rev-parse -q --verify "HEAD~1^{commit}" >/dev/null; then
+            uvx seamspec==0.1.2 doctor --ci --base HEAD~1
+          else
+            uvx seamspec==0.1.2 doctor --ci --base HEAD  # a root commit: nothing earlier to compare with
+          fi
+      - if: steps.setup.outputs.on == 'true'
+        run: uvx seamspec==0.1.2 verify --all --ci
+      # The earned spec must match the approved rules (spec §6.8).
+      - if: steps.setup.outputs.on == 'true' && hashFiles('docs/EARNED_SPEC.md') != ''
+        run: uvx seamspec==0.1.2 spec --check docs/EARNED_SPEC.md
+
+  # New dependencies with known vulnerabilities fail the pull request. Needs a paid plan on private
+  # repositories, so it runs on pull requests to public ones only (spec §6.2).
+  dependency-review:
+    if: github.event_name == 'pull_request' && !github.event.repository.private
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+
+  # Merges wait for Copilot's review of the pull request, of any commit (ADR-20261123-a359): asked every 30
+  # seconds for up to 20 minutes; a later push passes at once. Re-run the job if the review came later.
+  # Dependabot's own pull requests don't wait: GitHub never requests Copilot for them (ADR-20261123-cc8d).
+  copilot-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      pull-requests: read
+    steps:
+      - name: wait for Copilot's review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail  # a failing gh call stops the job with its own error, not a 20-minute wait
+          if [ "${DRAFT:-false}" = "true" ]; then
+            # the ruleset doesn't request Copilot's review on drafts: don't wait for one that won't come
+            echo "A draft: Copilot reviews it once it is marked ready for review, and this job runs again then."
+            exit 1
+          fi
+          case "${AUTHOR:-}" in
+            "dependabot[bot]")
+              # Dependabot: GitHub requests Copilot's review only for authors who have Copilot, so none comes. Its
+              # pull request holds Dependabot's commits only: its branch is in this repository, and every commit is
+              # authored by Dependabot and committed and signed by GitHub itself (`web-flow`), which no one else can
+              # be. Anything else fails at once: changes by people or agents go in a pull request of their own, which
+              # waits for Copilot (ADR-20261123-cc8d).
+              commits=""
+              if [ "${HEAD_REPO:-}" = "$REPOSITORY" ]; then
+                commits=$(gh api "repos/$REPOSITORY/pulls/$NUMBER/commits" --paginate \
+                  --jq '.[] | "\(.author.login // "-") \(.commit.verification.verified) \(.committer.login // "-")"')
+              fi
+              others=$(printf '%s\n' "$commits" \
+                | awk 'NF && ($1 != "dependabot[bot]" || $2 != "true" || $3 != "web-flow")' | wc -l)
+              # GitHub lists at most 250 commits of a pull request: a list that long may hide others, so it fails
+              listed=$(printf '%s\n' "$commits" | awk 'NF' | wc -l)
+              if [ -n "$commits" ] && [ "$listed" -lt 250 ] && [ "$others" -eq 0 ]; then
+                echo "Opened by Dependabot, every commit its own: dependency updates don't wait for Copilot's review."
+                exit 0
+              fi
+              echo "Opened by Dependabot, but not only its own commits on a branch of this repository: a dependency"
+              echo "update's pull request holds only Dependabot's commits. Open a separate one for other changes."
+              exit 1
+              ;;
+          esac
+          for attempt in $(seq 1 40); do
+            # one line per review by Copilot, on any page of the list
+            reviewed=$(gh api "repos/$REPOSITORY/pulls/$NUMBER/reviews" --paginate \
+              --jq '.[] | select(.user.login == "copilot-pull-request-reviewer[bot]") | .id' | wc -l)
+            if [ "$reviewed" -gt 0 ]; then
+              echo "Copilot has reviewed this pull request."
+              exit 0
+            fi
+            echo "Waiting for Copilot's review ($attempt of 40)."
+            sleep 30
+          done
+          echo "No review from Copilot after 20 minutes: request it from the Reviewers box, then re-run this job."
+          exit 1
+
+  # The one check a ruleset requires. Every job must succeed, except one skipped by design, which must be
+  # skipped: test-macos off pushes, governance and copilot-review off pull requests, dependency-review off
+  # pull requests to public repositories. A failed, cancelled or unexpectedly skipped job fails it.
+  ci-ok:
+    if: always()
+    needs: [lint, test, test-macos, workflow-audit, seamspec, dependency-review, copilot-review]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: every job passed, or was skipped by design
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          set -eu
+          wrong=$(printf '%s' "$NEEDS" | jq -r --arg event "$EVENT" --arg private "$PRIVATE" '
+            to_entries[]
+            | (if .key == "test-macos" then (if $event == "push" then "success" else "skipped" end)
+               elif .key == "governance" or .key == "copilot-review" then
+                 (if $event == "pull_request" then "success" else "skipped" end)
+               elif .key == "dependency-review" then
+                 (if $event == "pull_request" and $private == "false" then "success" else "skipped" end)
+               else "success" end) as $expected
+            | select(.value.result != $expected)
+            | "\(.key): \(.value.result) (expected \($expected))"')
+          if [ -n "$wrong" ]; then
+            printf '%s\n' "$wrong"
+            exit 1
+          fi
+          echo "Every job passed or was skipped by design."

@@ -11,3 +11,15 @@ dist/
 # Reflexion state. Persisted failures, exemplars and golden cases contain real user
 # queries and model outputs -- never commit them.
 .smart_router/
+
+# swerepo:begin
+# Local secrets and machine-specific files (SWEREPO-SPEC §6.4)
+.env
+.env.*
+!.env.example
+*.pem
+.DS_Store
+Thumbs.db
+.idea/
+.claude/settings.local.json
+# swerepo:end

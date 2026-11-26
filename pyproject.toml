@@ -47,3 +47,16 @@ testpaths = ["tests"]
 markers = [
     "live_mcp: spawns a real MCP server via uvx (slow, needs network on first run)",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+# swerepo:begin
+[tool.ruff]
+# Locked SeamSpec tests are never linted or reformatted: any edit counts as tampering (SWEREPO-SPEC §6.3).
+extend-exclude = [".seamspec"]
+# line-length: ruff's default
+# swerepo:end
