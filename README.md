@@ -173,12 +173,32 @@ serves the saved corrections as few-shot examples.
 ## Install
 
 ```bash
+uv sync --extra dev          # reproducible: installs exactly what uv.lock pins
+```
+
+Or, to resolve fresh against the ranges in `pyproject.toml` instead:
+
+```bash
 uv venv && uv pip install -e '.[dev]'
 ```
 
 Optional extras: `providers` (LiteLLM), `mcp` (live MCP servers), `embed` (local
 sentence-transformers). The core runs and tests with none of them; `MockClient` and
 `HashingEmbedder` are the defaults.
+
+**On versions.** `pyproject.toml` declares what is *compatible* (`litellm>=1.92.0`);
+`uv.lock` records what has actually been *resolved and checked*. The two answer different
+questions, and only the lock gives you the same versions twice.
+
+A lock binds `uv sync` and `uv pip sync`. It does **not** bind `pip install smart-router`,
+which resolves fresh from the ranges — so a consumer installing later still gets whatever
+is newest. Use the lock for development and CI; if a specific upper bound is ever needed
+for consumers, that belongs in `pyproject.toml`, not here.
+
+Provider SDKs move quickly, so the surface this depends on is kept deliberately small:
+three litellm symbols (`completion`, `suppress_debug_info`, `model_list`) across three
+files, with every response field read through `getattr` and a default. Swapping litellm
+out means rewriting `gateway/client.py` and nothing above it.
 
 ## Run
 
